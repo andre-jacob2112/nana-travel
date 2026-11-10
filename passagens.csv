@@ -1,0 +1,13 @@
+Companhia;Origem;Destino;Data;Preço;escalas
+Empresa A;São Paulo;Recife;10/12/2026;550;0
+Empresa B;São Paulo;Recife;10/12/2026;720;1
+Empresa C;São Paulo;Recife;15/12/2026;500;1
+Empresa D;São Paulo;Salvador;12/12/2026;480;0
+Empresa E;Rio de Janeiro;Recife;10/12/2026;450;1
+Empresa F;São Paulo;Recife;05/01/2027;420;0
+Empresa G;São Paulo;Recife;20/12/2026;610;0
+Empresa H;Recife;São Paulo;18/12/2026;380;0
+Empresa I;Recife;São Paulo;22/12/2026;300;1
+Empresa J;Recife;São Paulo;14/12/2026;260;0
+Empresa K;Recife;São Paulo;08/01/2027;350;0
+Empresa L;Recife;São Paulo;16/12/2026;200;0
