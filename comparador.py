@@ -99,7 +99,7 @@ def obter_total(combinacao):
     return combinacao["Total"]
 
 
-def combinar_ida_volta(idas, voltas, orcamento):
+def combinar_ida_volta(idas, voltas, orcamento, dias_min=None, dias_max=None):
     combinacoes = []
 
     for ida in idas:
@@ -108,16 +108,17 @@ def combinar_ida_volta(idas, voltas, orcamento):
             data_volta = converter_data(volta["Data"])
             total = ida["Preço"] + volta["Preço"]
             dias = (data_volta - data_ida).days
-            if data_volta > data_ida and total <= orcamento:
+            duracao_valida = (dias_min is None or dias >= dias_min) and (dias_max is None or dias <= dias_max)
+            if data_volta > data_ida and total <= orcamento and duracao_valida:
                 combinacoes.append({"Ida": ida, "Volta": volta, "Total": total, "Dias": dias})
 
     return combinacoes
 
 
-def buscar(passagens, origem, destino, inicio_ida, fim_ida, inicio_volta, fim_volta, orcamento, max_escalas):
+def buscar(passagens, origem, destino, inicio_ida, fim_ida, inicio_volta, fim_volta, orcamento, max_escalas, dias_min=None, dias_max=None):
     idas = filtrar_passagens(passagens, origem, destino, inicio_ida, fim_ida, max_escalas)
     voltas = filtrar_passagens(passagens, destino, origem, inicio_volta, fim_volta, max_escalas)
-    combinacoes = combinar_ida_volta(idas, voltas, orcamento)
+    combinacoes = combinar_ida_volta(idas, voltas, orcamento, dias_min, dias_max)
     combinacoes.sort(key=obter_total)
     return combinacoes
 

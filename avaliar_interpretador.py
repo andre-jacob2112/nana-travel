@@ -6,6 +6,7 @@ from interpretador import interpretar_pedido, CAMPOS
 
 HOJE = date(2026, 11, 10)
 META = 18
+PAUSA = 15
 
 CASOS = [
     {"pedido": "Quero ir de São Paulo para Recife entre 1 e 10 de dezembro e voltar entre 15 e 20 de dezembro, até 1000 reais, no máximo 1 escala",
@@ -76,7 +77,7 @@ def avaliar():
         except (RuntimeError, ValueError) as erro:
             print(f"{numero:2}. ⚠️  ERRO: {erro}")
             falhas_de_api += 1
-            time.sleep(4)
+            time.sleep(PAUSA)
             continue
 
         erros = []
@@ -96,14 +97,16 @@ def avaliar():
             pedidos_corretos += 1
             print(f"{numero:2}. ✅ {caso['pedido']}")
 
-        time.sleep(4)
+        time.sleep(PAUSA)
 
     total = len(CASOS)
     print()
     print(f"Pedidos 100% corretos: {pedidos_corretos}/{total}")
     print(f"Campos corretos: {campos_corretos}/{total * len(CAMPOS)}")
     print(f"Falhas de API: {falhas_de_api}")
-    if pedidos_corretos >= META:
+    if falhas_de_api > 0:
+        print("Rodada INVÁLIDA: houve falhas de API, então o critério não pode ser avaliado. Rode de novo.")
+    elif pedidos_corretos >= META:
         print(f"Critério de sucesso (≥ {META}/{total}): ATINGIDO")
     else:
         print(f"Critério de sucesso (≥ {META}/{total}): NÃO atingido")

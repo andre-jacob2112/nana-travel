@@ -56,3 +56,16 @@ def test_cidade_sem_acento_e_maiuscula():
 
 def test_normalizar():
     assert normalizar("SÃO PAULO") == "sao paulo"
+
+
+def test_duracao_entre_6_e_7_dias():
+    combinacoes = buscar(PASSAGENS, "São Paulo", "Recife",
+                         date(2026, 12, 1), date(2026, 12, 16),
+                         date(2026, 12, 13), date(2026, 12, 23),
+                         1000, 1, 6, 7)
+    assert len(combinacoes) == 3
+    assert combinacoes[0]["Total"] == 750
+    assert combinacoes[1]["Total"] == 800
+    assert combinacoes[2]["Total"] == 920
+    for combinacao in combinacoes:
+        assert 6 <= combinacao["Dias"] <= 7
