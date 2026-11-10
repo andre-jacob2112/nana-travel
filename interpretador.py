@@ -16,10 +16,10 @@ CAMPOS = ["origem", "destino", "inicio_ida", "fim_ida",
           "inicio_volta", "fim_volta", "orcamento", "max_escalas"]
 
 
-def montar_instrucoes():
-    hoje = date.today().strftime("%d/%m/%Y")
+def montar_instrucoes(hoje):
+    hoje_texto = hoje.strftime("%d/%m/%Y")
     return f"""Você extrai critérios de busca de passagens aéreas de um pedido em português.
-Hoje é {hoje}. Datas sem ano referem-se à próxima ocorrência a partir de hoje.
+Hoje é {hoje_texto}.. Datas sem ano referem-se à próxima ocorrência a partir de hoje.
 
 Responda APENAS com um objeto JSON, sem nenhum texto antes ou depois, com estas chaves:
 - "origem" e "destino": nomes das cidades
@@ -60,8 +60,8 @@ def limpar_json(texto):
     return texto.strip()
 
 
-def interpretar_pedido(pedido):
-    texto = chamar_llm(montar_instrucoes(), pedido)
+def interpretar_pedido(pedido, hoje):
+    texto = chamar_llm(montar_instrucoes(hoje), pedido)
     return json.loads(limpar_json(texto))
 
 
@@ -78,7 +78,7 @@ def executar_linguagem_natural():
     pedido = input("Descreva a viagem que você quer: ")
 
     try:
-        criterios = interpretar_pedido(pedido)
+                criterios = interpretar_pedido(pedido, date.today())
     except (RuntimeError, ValueError) as erro:
         print("Não consegui interpretar o pedido:", erro)
         return
