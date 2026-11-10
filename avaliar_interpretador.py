@@ -2,10 +2,10 @@ import time
 from datetime import date
 
 from comparador import normalizar, converter_data
-from interpretador import interpretar_pedido, CAMPOS
+from interpretador import interpretar_pedido
 
 HOJE = date(2026, 11, 10)
-META = 18
+META_PERCENTUAL = 0.9
 PAUSA = 15
 
 CASOS = [
@@ -51,6 +51,35 @@ CASOS = [
      "esperado": {"origem": "São Paulo", "destino": "Recife", "inicio_ida": "01/12/2026", "fim_ida": "10/12/2026", "inicio_volta": "13/12/2026", "fim_volta": "23/12/2026", "orcamento": 1000, "max_escalas": 3}},
 ]
 
+
+# Conjunto de VALIDAÇÃO: pedidos novos, nunca usados para ajustar o prompt.
+CASOS_VALIDACAO = [
+    {"pedido": "Partindo de Fortaleza rumo a São Paulo, embarque entre 4 e 9 de dezembro, retorno entre 14 e 18 de dezembro, teto de 1.400 reais, tolero 1 conexão",
+     "esperado": {"origem": "Fortaleza", "destino": "São Paulo", "inicio_ida": "04/12/2026", "fim_ida": "09/12/2026", "inicio_volta": "14/12/2026", "fim_volta": "18/12/2026", "orcamento": 1400, "max_escalas": 1, "dias_min": None, "dias_max": None}},
+    {"pedido": "Quero passar 10 dias em Salvador saindo de Curitiba, indo em algum momento da primeira quinzena de janeiro, máximo R$ 1.800, só voo direto",
+     "esperado": {"origem": "Curitiba", "destino": "Salvador", "inicio_ida": "01/01/2027", "fim_ida": "15/01/2027", "inicio_volta": "11/01/2027", "fim_volta": "25/01/2027", "orcamento": 1800, "max_escalas": 0, "dias_min": 10, "dias_max": 10}},
+    {"pedido": "Floripa para Porto Alegre, ida no finalzinho de janeiro, volta no começo de fevereiro, até 700 reais, 2 escalas no máximo",
+     "esperado": {"origem": "Florianópolis", "destino": "Porto Alegre", "inicio_ida": "16/01/2027", "fim_ida": "31/01/2027", "inicio_volta": "01/02/2027", "fim_volta": "15/02/2027", "orcamento": 700, "max_escalas": 2, "dias_min": None, "dias_max": None}},
+    {"pedido": "De Recife pra Natal, saio dia 12 de dezembro e volto dia 19, até 400, direto",
+     "esperado": {"origem": "Recife", "destino": "Natal", "inicio_ida": "12/12/2026", "fim_ida": "12/12/2026", "inicio_volta": "19/12/2026", "fim_volta": "19/12/2026", "orcamento": 400, "max_escalas": 0, "dias_min": None, "dias_max": None}},
+    {"pedido": "Belo Horizonte para Rio de Janeiro, ida entre 20 e 24 de dezembro, volta entre 24 e 30 de dezembro, ficando entre 4 e 6 dias, até 900 reais, aceito uma escala",
+     "esperado": {"origem": "Belo Horizonte", "destino": "Rio de Janeiro", "inicio_ida": "20/12/2026", "fim_ida": "24/12/2026", "inicio_volta": "24/12/2026", "fim_volta": "30/12/2026", "orcamento": 900, "max_escalas": 1, "dias_min": 4, "dias_max": 6}},
+    {"pedido": "Manaus → Belém. Ida: meados de fevereiro. Volta: fim de fevereiro. Orçamento: R$ 950. Escalas: no máximo 1.",
+     "esperado": {"origem": "Manaus", "destino": "Belém", "inicio_ida": "11/02/2027", "fim_ida": "20/02/2027", "inicio_volta": "16/02/2027", "fim_volta": "28/02/2027", "orcamento": 950, "max_escalas": 1, "dias_min": None, "dias_max": None}},
+    {"pedido": "Preciso de uma passagem de ida e volta para Lisboa saindo de São Paulo, com até uma escala, gastando no máximo 6 mil",
+     "esperado": {"origem": "São Paulo", "destino": "Lisboa", "inicio_ida": None, "fim_ida": None, "inicio_volta": None, "fim_volta": None, "orcamento": 6000, "max_escalas": 1, "dias_min": None, "dias_max": None}},
+    {"pedido": "rj pra sp, vou dia 5/12 e volto 8/12, max 350 conto, sem conexão",
+     "esperado": {"origem": "Rio de Janeiro", "destino": "São Paulo", "inicio_ida": "05/12/2026", "fim_ida": "05/12/2026", "inicio_volta": "08/12/2026", "fim_volta": "08/12/2026", "orcamento": 350, "max_escalas": 0, "dias_min": None, "dias_max": None}},
+    {"pedido": "Ida de Salvador para Fortaleza no começo de janeiro, voltando 5 dias depois, até mil e quinhentos reais, até 1 escala",
+     "esperado": {"origem": "Salvador", "destino": "Fortaleza", "inicio_ida": "01/01/2027", "fim_ida": "15/01/2027", "inicio_volta": "06/01/2027", "fim_volta": "20/01/2027", "orcamento": 1500, "max_escalas": 1, "dias_min": 5, "dias_max": 5}},
+    {"pedido": "Goiânia para Brasília: ida entre 26 e 30 de novembro, volta entre 1 e 4 de dezembro, até 300 reais, sem escala, viagem de no mínimo 3 dias",
+     "esperado": {"origem": "Goiânia", "destino": "Brasília", "inicio_ida": "26/11/2026", "fim_ida": "30/11/2026", "inicio_volta": "01/12/2026", "fim_volta": "04/12/2026", "orcamento": 300, "max_escalas": 0, "dias_min": 3, "dias_max": None}},
+    # Escrito por André, sem acesso ao prompt
+    {"pedido": "tava pensando em sair daqui de bh na primeira metade de setembro pra voltar só no finalzinho de outubro la de salvador",
+     "esperado": {"origem": "Belo Horizonte", "destino": "Salvador", "inicio_ida": "01/09/2027", "fim_ida": "15/09/2027", "inicio_volta": "16/10/2027", "fim_volta": "31/10/2027", "orcamento": None, "max_escalas": None, "dias_min": None, "dias_max": None}},
+]
+
+
 def campo_correto(campo, esperado, obtido):
     if esperado is None:
         return obtido is None
@@ -66,12 +95,13 @@ def campo_correto(campo, esperado, obtido):
         return False
 
 
-def avaliar():
+def avaliar(casos):
     pedidos_corretos = 0
     campos_corretos = 0
+    total_campos = 0
     falhas_de_api = 0
 
-    for numero, caso in enumerate(CASOS, start=1):
+    for numero, caso in enumerate(casos, start=1):
         try:
             obtido = interpretar_pedido(caso["pedido"], HOJE)
         except (RuntimeError, ValueError) as erro:
@@ -81,9 +111,10 @@ def avaliar():
             continue
 
         erros = []
-        for campo in CAMPOS:
+        for campo in caso["esperado"]:
             esperado = caso["esperado"][campo]
             valor = obtido.get(campo)
+            total_campos += 1
             if campo_correto(campo, esperado, valor):
                 campos_corretos += 1
             else:
@@ -99,18 +130,22 @@ def avaliar():
 
         time.sleep(PAUSA)
 
-    total = len(CASOS)
+    total = len(casos)
     print()
     print(f"Pedidos 100% corretos: {pedidos_corretos}/{total}")
-    print(f"Campos corretos: {campos_corretos}/{total * len(CAMPOS)}")
+    print(f"Campos corretos: {campos_corretos}/{total_campos}")
     print(f"Falhas de API: {falhas_de_api}")
     if falhas_de_api > 0:
         print("Rodada INVÁLIDA: houve falhas de API, então o critério não pode ser avaliado. Rode de novo.")
-    elif pedidos_corretos >= META:
-        print(f"Critério de sucesso (≥ {META}/{total}): ATINGIDO")
+    elif pedidos_corretos >= META_PERCENTUAL * total:
+        print(f"Critério de sucesso (≥ {META_PERCENTUAL:.0%}): ATINGIDO")
     else:
-        print(f"Critério de sucesso (≥ {META}/{total}): NÃO atingido")
+        print(f"Critério de sucesso (≥ {META_PERCENTUAL:.0%}): NÃO atingido")
 
 
 if __name__ == "__main__":
-    avaliar()
+    escolha = input("Qual conjunto? (1 = teste, 2 = validação): ").strip()
+    if escolha == "2":
+        avaliar(CASOS_VALIDACAO)
+    else:
+        avaliar(CASOS)
