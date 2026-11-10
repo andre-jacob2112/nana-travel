@@ -107,8 +107,9 @@ def combinar_ida_volta(idas, voltas, orcamento):
             data_ida = converter_data(ida["Data"])
             data_volta = converter_data(volta["Data"])
             total = ida["Preço"] + volta["Preço"]
+            dias = (data_volta - data_ida).days
             if data_volta > data_ida and total <= orcamento:
-                combinacoes.append({"Ida": ida, "Volta": volta, "Total": total})
+                combinacoes.append({"Ida": ida, "Volta": volta, "Total": total, "Dias": dias})
 
     return combinacoes
 
@@ -117,13 +118,28 @@ def formatar_trecho(oferta):
     return f"{oferta['Data']} | {oferta['Companhia']} | {oferta['Origem']} → {oferta['Destino']} | R$ {oferta['Preço']:.2f} | Escalas: {oferta['escalas']}"
 
 
-def exibir_combinacoes(combinacoes):
+def exibir_combinacoes(combinacoes, limite):
     if combinacoes:
-        print(f"Combinações encontradas: {len(combinacoes)}")
-        for numero, combinacao in enumerate(combinacoes, start=1):
-            print(f"{numero}. Total: R$ {combinacao['Total']:.2f}")
+        melhor = combinacoes[0]
+        mais_cara = combinacoes[-1]
+        economia = mais_cara["Total"] - melhor["Total"]
+        quantidade = min(limite, len(combinacoes))
+
+        print(f"Combinações encontradas: {len(combinacoes)} (mostrando as {quantidade} mais baratas)")
+        print(f"A melhor opção custa R$ {economia:.2f} a menos que a mais cara encontrada")
+        print()
+
+        for numero, combinacao in enumerate(combinacoes[:limite], start=1):
+            diferenca = combinacao["Total"] - melhor["Total"]
+            if diferenca == 0:
+                comparacao = "melhor preço"
+            else:
+                comparacao = f"+R$ {diferenca:.2f} em relação à melhor"
+
+            print(f"{numero}. Total: R$ {combinacao['Total']:.2f} ({comparacao}) | Duração: {combinacao['Dias']} dia(s)")
             print(f"   Ida:   {formatar_trecho(combinacao['Ida'])}")
             print(f"   Volta: {formatar_trecho(combinacao['Volta'])}")
+            print()
     else:
         print("Nenhuma combinação atende aos critérios")
 
@@ -144,4 +160,4 @@ voltas = filtrar_passagens(passagens, destino, origem, inicio_volta, fim_volta, 
 combinacoes = combinar_ida_volta(idas, voltas, orcamento)
 combinacoes.sort(key=obter_total)
 
-exibir_combinacoes(combinacoes)
+exibir_combinacoes(combinacoes, 5)
