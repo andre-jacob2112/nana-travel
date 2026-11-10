@@ -1,5 +1,5 @@
 from datetime import date
-from comparador import carregar_passagens, buscar, normalizar
+from comparador import carregar_passagens, buscar, buscar_roteiro, normalizar, converter_data
 
 PASSAGENS = carregar_passagens("passagens.csv")
 
@@ -79,3 +79,35 @@ def test_sem_orcamento():
     assert len(combinacoes) == 11
     assert combinacoes[0]["Total"] == 700
     assert combinacoes[-1]["Total"] == 1100
+
+
+TRES_TRECHOS = [
+    {"origem": "São Paulo", "destino": "Recife", "inicio": date(2026, 12, 1), "fim": date(2026, 12, 16)},
+    {"origem": "Recife", "destino": "Salvador", "inicio": date(2026, 12, 13), "fim": date(2026, 12, 23)},
+    {"origem": "Salvador", "destino": "São Paulo", "inicio": date(2026, 12, 17), "fim": date(2026, 12, 31)},
+]
+
+
+def test_roteiro_tres_trechos():
+    roteiros = buscar_roteiro(PASSAGENS, TRES_TRECHOS, None, 1)
+    assert len(roteiros) == 15
+    melhor = roteiros[0]
+    assert melhor["Total"] == 1010
+    assert melhor["Trechos"][0]["Companhia"] == "Empresa C"
+    assert melhor["Trechos"][1]["Companhia"] == "Empresa N"
+    assert melhor["Trechos"][2]["Companhia"] == "Empresa P"
+
+
+def test_roteiro_datas_sempre_em_ordem():
+    roteiros = buscar_roteiro(PASSAGENS, TRES_TRECHOS, None, 1)
+    for roteiro in roteiros:
+        trechos = roteiro["Trechos"]
+        for posicao in range(1, len(trechos)):
+            assert converter_data(trechos[posicao]["Data"]) > converter_data(trechos[posicao - 1]["Data"])
+
+
+def test_roteiro_sem_escalas_e_com_orcamento():
+    roteiros = buscar_roteiro(PASSAGENS, TRES_TRECHOS, 1200, 0)
+    assert len(roteiros) == 2
+    assert roteiros[0]["Total"] == 1150
+    assert roteiros[1]["Total"] == 1200

@@ -1,12 +1,13 @@
-# Comparador de passagens
+# Nana Travel: lógica de busca
 
 import unicodedata
 import csv
 from datetime import datetime
 
+
 def ler_orcamento():
     while True:
-        texto = input("Qual é o seu orçamento total (ida + volta)? Deixe em branco para não ter limite: ").strip()
+        texto = input("Qual é o seu orçamento total? Deixe em branco para não ter limite: ").strip()
         if texto == "":
             return None
         try:
@@ -22,11 +23,23 @@ def ler_orcamento():
 def ler_max_escalas():
     while True:
         try:
-            max_escalas = int(input("Qual é o máximo de escalas? "))
+            max_escalas = int(input("Qual é o máximo de escalas por trecho? "))
             if max_escalas < 0:
                 print("O número de escalas não pode ser negativo")
             else:
                 return max_escalas
+        except ValueError:
+            print("Digite um número inteiro válido")
+
+
+def ler_quantidade_trechos():
+    while True:
+        try:
+            quantidade = int(input("Quantos trechos tem a viagem? "))
+            if quantidade < 2:
+                print("Uma viagem com vários trechos precisa de pelo menos 2")
+            else:
+                return quantidade
         except ValueError:
             print("Digite um número inteiro válido")
 
@@ -102,28 +115,61 @@ def obter_total(combinacao):
     return combinacao["Total"]
 
 
-def combinar_ida_volta(idas, voltas, orcamento, dias_min=None, dias_max=None):
-    combinacoes = []
+def somar_precos(ofertas):
+    total = 0
+    for oferta in ofertas:
+        total += oferta["Preço"]
+    return total
 
-    for ida in idas:
-        for volta in voltas:
-            data_ida = converter_data(ida["Data"])
-            data_volta = converter_data(volta["Data"])
-            total = ida["Preço"] + volta["Preço"]
-            dias = (data_volta - data_ida).days
-            duracao_valida = (dias_min is None or dias >= dias_min) and (dias_max is None or dias <= dias_max)
-            dentro_do_orcamento = orcamento is None or total <= orcamento
-            if data_volta > data_ida and dentro_do_orcamento and duracao_valida:
-                combinacoes.append({"Ida": ida, "Volta": volta, "Total": total, "Dias": dias})
 
-    return combinacoes
+def montar_roteiros(passagens, trechos, orcamento, max_escalas):
+    roteiros = [[]]
+
+    for trecho in trechos:
+        candidatos = filtrar_passagens(passagens, trecho["origem"], trecho["destino"],
+                                       trecho["inicio"], trecho["fim"], max_escalas)
+        novos_roteiros = []
+        for roteiro in roteiros:
+            for oferta in candidatos:
+                if roteiro and converter_data(oferta["Data"]) <= converter_data(roteiro[-1]["Data"]):
+                    continue
+                total = somar_precos(roteiro) + oferta["Preço"]
+                if orcamento is not None and total > orcamento:
+                    continue
+                novos_roteiros.append(roteiro + [oferta])
+        roteiros = novos_roteiros
+
+    return roteiros
+
+
+def buscar_roteiro(passagens, trechos, orcamento, max_escalas, dias_min=None, dias_max=None):
+    resultados = []
+
+    for roteiro in montar_roteiros(passagens, trechos, orcamento, max_escalas):
+        dias = (converter_data(roteiro[-1]["Data"]) - converter_data(roteiro[0]["Data"])).days
+        duracao_valida = (dias_min is None or dias >= dias_min) and (dias_max is None or dias <= dias_max)
+        if duracao_valida:
+            resultados.append({"Trechos": roteiro, "Total": somar_precos(roteiro), "Dias": dias})
+
+    resultados.sort(key=obter_total)
+    return resultados
 
 
 def buscar(passagens, origem, destino, inicio_ida, fim_ida, inicio_volta, fim_volta, orcamento, max_escalas, dias_min=None, dias_max=None):
-    idas = filtrar_passagens(passagens, origem, destino, inicio_ida, fim_ida, max_escalas)
-    voltas = filtrar_passagens(passagens, destino, origem, inicio_volta, fim_volta, max_escalas)
-    combinacoes = combinar_ida_volta(idas, voltas, orcamento, dias_min, dias_max)
-    combinacoes.sort(key=obter_total)
+    trechos = [
+        {"origem": origem, "destino": destino, "inicio": inicio_ida, "fim": fim_ida},
+        {"origem": destino, "destino": origem, "inicio": inicio_volta, "fim": fim_volta}
+    ]
+    roteiros = buscar_roteiro(passagens, trechos, orcamento, max_escalas, dias_min, dias_max)
+
+    combinacoes = []
+    for roteiro in roteiros:
+        combinacoes.append({
+            "Ida": roteiro["Trechos"][0],
+            "Volta": roteiro["Trechos"][1],
+            "Total": roteiro["Total"],
+            "Dias": roteiro["Dias"]
+        })
     return combinacoes
 
 
@@ -131,38 +177,53 @@ def formatar_trecho(oferta):
     return f"{oferta['Data']} | {oferta['Companhia']} | {oferta['Origem']} → {oferta['Destino']} | R$ {oferta['Preço']:.2f} | Escalas: {oferta['escalas']}"
 
 
-def exibir_combinacoes(combinacoes, limite):
-    if combinacoes:
-        melhor = combinacoes[0]
-        quantidade = min(limite, len(combinacoes))
+def exibir_resumo(resultados, limite):
+    if len(resultados) == 1:
+        print("Combinação encontrada: 1")
+    else:
+        quantidade = min(limite, len(resultados))
+        economia = resultados[-1]["Total"] - resultados[0]["Total"]
+        print(f"Combinações encontradas: {len(resultados)} (mostrando as {quantidade} mais baratas)")
+        print(f"A melhor opção custa R$ {economia:.2f} a menos que a mais cara encontrada")
+    print()
 
-        if len(combinacoes) == 1:
-            print("Combinação encontrada: 1")
-        else:
-            mais_cara = combinacoes[-1]
-            economia = mais_cara["Total"] - melhor["Total"]
-            print(f"Combinações encontradas: {len(combinacoes)} (mostrando as {quantidade} mais baratas)")
-            print(f"A melhor opção custa R$ {economia:.2f} a menos que a mais cara encontrada")
+
+def descrever_preco(resultado, melhor):
+    diferenca = resultado["Total"] - melhor["Total"]
+    if diferenca == 0:
+        return "melhor preço"
+    return f"+R$ {diferenca:.2f} em relação à melhor"
+
+
+def exibir_combinacoes(combinacoes, limite):
+    if not combinacoes:
+        print("Nenhuma combinação atende aos critérios")
+        return
+
+    exibir_resumo(combinacoes, limite)
+    melhor = combinacoes[0]
+    for numero, combinacao in enumerate(combinacoes[:limite], start=1):
+        print(f"{numero}. Total: R$ {combinacao['Total']:.2f} ({descrever_preco(combinacao, melhor)}) | Duração: {combinacao['Dias']} dia(s)")
+        print(f"   Ida:   {formatar_trecho(combinacao['Ida'])}")
+        print(f"   Volta: {formatar_trecho(combinacao['Volta'])}")
         print()
 
-        for numero, combinacao in enumerate(combinacoes[:limite], start=1):
-            diferenca = combinacao["Total"] - melhor["Total"]
-            if diferenca == 0:
-                comparacao = "melhor preço"
-            else:
-                comparacao = f"+R$ {diferenca:.2f} em relação à melhor"
 
-            print(f"{numero}. Total: R$ {combinacao['Total']:.2f} ({comparacao}) | Duração: {combinacao['Dias']} dia(s)")
-            print(f"   Ida:   {formatar_trecho(combinacao['Ida'])}")
-            print(f"   Volta: {formatar_trecho(combinacao['Volta'])}")
-            print()
-    else:
-        print("Nenhuma combinação atende aos critérios")
+def exibir_roteiros(roteiros, limite):
+    if not roteiros:
+        print("Nenhum roteiro atende aos critérios")
+        return
+
+    exibir_resumo(roteiros, limite)
+    melhor = roteiros[0]
+    for numero, roteiro in enumerate(roteiros[:limite], start=1):
+        print(f"{numero}. Total: R$ {roteiro['Total']:.2f} ({descrever_preco(roteiro, melhor)}) | Duração: {roteiro['Dias']} dia(s)")
+        for posicao, oferta in enumerate(roteiro["Trechos"], start=1):
+            print(f"   Trecho {posicao}: {formatar_trecho(oferta)}")
+        print()
 
 
-def executar_terminal():
-    passagens = carregar_passagens("passagens.csv")
-
+def executar_ida_e_volta(passagens):
     origem = input("Origem: ").strip()
     destino = input("Destino: ").strip()
     inicio_ida, fim_ida = ler_periodo("Ida")
@@ -172,6 +233,33 @@ def executar_terminal():
 
     combinacoes = buscar(passagens, origem, destino, inicio_ida, fim_ida, inicio_volta, fim_volta, orcamento, max_escalas)
     exibir_combinacoes(combinacoes, 5)
+
+
+def executar_varios_trechos(passagens):
+    quantidade = ler_quantidade_trechos()
+    trechos = []
+    for numero in range(1, quantidade + 1):
+        print(f"\nTrecho {numero}")
+        origem = input("Origem: ").strip()
+        destino = input("Destino: ").strip()
+        inicio, fim = ler_periodo(f"Trecho {numero}")
+        trechos.append({"origem": origem, "destino": destino, "inicio": inicio, "fim": fim})
+
+    print()
+    orcamento = ler_orcamento()
+    max_escalas = ler_max_escalas()
+
+    roteiros = buscar_roteiro(passagens, trechos, orcamento, max_escalas)
+    exibir_roteiros(roteiros, 5)
+
+
+def executar_terminal():
+    passagens = carregar_passagens("passagens.csv")
+    tipo = input("Tipo de viagem (1 = ida e volta, 2 = vários trechos): ").strip()
+    if tipo == "2":
+        executar_varios_trechos(passagens)
+    else:
+        executar_ida_e_volta(passagens)
 
 
 if __name__ == "__main__":
