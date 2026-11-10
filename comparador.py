@@ -114,6 +114,14 @@ def combinar_ida_volta(idas, voltas, orcamento):
     return combinacoes
 
 
+def buscar(passagens, origem, destino, inicio_ida, fim_ida, inicio_volta, fim_volta, orcamento, max_escalas):
+    idas = filtrar_passagens(passagens, origem, destino, inicio_ida, fim_ida, max_escalas)
+    voltas = filtrar_passagens(passagens, destino, origem, inicio_volta, fim_volta, max_escalas)
+    combinacoes = combinar_ida_volta(idas, voltas, orcamento)
+    combinacoes.sort(key=obter_total)
+    return combinacoes
+
+
 def formatar_trecho(oferta):
     return f"{oferta['Data']} | {oferta['Companhia']} | {oferta['Origem']} → {oferta['Destino']} | R$ {oferta['Preço']:.2f} | Escalas: {oferta['escalas']}"
 
@@ -144,20 +152,19 @@ def exibir_combinacoes(combinacoes, limite):
         print("Nenhuma combinação atende aos critérios")
 
 
-passagens = carregar_passagens("passagens.csv")
+def executar_terminal():
+    passagens = carregar_passagens("passagens.csv")
+
+    origem = input("Origem: ").strip()
+    destino = input("Destino: ").strip()
+    inicio_ida, fim_ida = ler_periodo("Ida")
+    inicio_volta, fim_volta = ler_periodo("Volta")
+    orcamento = ler_orcamento()
+    max_escalas = ler_max_escalas()
+
+    combinacoes = buscar(passagens, origem, destino, inicio_ida, fim_ida, inicio_volta, fim_volta, orcamento, max_escalas)
+    exibir_combinacoes(combinacoes, 5)
 
 
-origem = input("Origem: ").strip()
-destino = input("Destino: ").strip()
-inicio_ida, fim_ida = ler_periodo("Ida")
-inicio_volta, fim_volta = ler_periodo("Volta")
-orcamento = ler_orcamento()
-max_escalas = ler_max_escalas()
-
-idas = filtrar_passagens(passagens, origem, destino, inicio_ida, fim_ida, max_escalas)
-voltas = filtrar_passagens(passagens, destino, origem, inicio_volta, fim_volta, max_escalas)
-
-combinacoes = combinar_ida_volta(idas, voltas, orcamento)
-combinacoes.sort(key=obter_total)
-
-exibir_combinacoes(combinacoes, 5)
+if __name__ == "__main__":
+    executar_terminal()
