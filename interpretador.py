@@ -19,7 +19,7 @@ CAMPOS = ["origem", "destino", "inicio_ida", "fim_ida",
 def montar_instrucoes(hoje):
     hoje_texto = hoje.strftime("%d/%m/%Y")
     return f"""Você extrai critérios de busca de passagens aéreas de um pedido em português.
-Hoje é {hoje_texto}.. Datas sem ano referem-se à próxima ocorrência a partir de hoje.
+Hoje é {hoje_texto}. Datas sem ano referem-se à próxima ocorrência a partir de hoje.
 
 Responda APENAS com um objeto JSON, sem nenhum texto antes ou depois, com estas chaves:
 - "origem" e "destino": nomes das cidades
@@ -28,8 +28,10 @@ Responda APENAS com um objeto JSON, sem nenhum texto antes ou depois, com estas 
 - "max_escalas": número inteiro
 
 Regras:
-- "começo do mês" = dias 1 a 10; "meio do mês" = dias 11 a 20; "fim do mês" = dia 21 até o último dia.
-- Se o pedido der uma duração (ex.: "voltar uma semana depois"), calcule o período da volta somando essa duração ao período da ida.
+- Cada período (ida e volta) tem SEMPRE uma data de início e uma data de fim. Mesmo que o pedido descreva o período de forma vaga, preencha as duas.
+- "começo do mês" = dias 1 a 15; "meio do mês" = dias 11 a 20; "fim do mês" ou "final do mês" = dia 16 até o último dia do mês.
+- Volta relativa (ex.: "voltar 3 dias depois"): some a duração às DUAS datas da ida. inicio_volta = inicio_ida + duração; fim_volta = fim_ida + duração.
+- Escreva as cidades sempre pelo nome completo, nunca abreviado (ex.: "SP" → "São Paulo", "BH" → "Belo Horizonte").
 - "voo direto" ou "sem escalas" = 0.
 - Se uma informação não aparecer no pedido, use null."""
 
