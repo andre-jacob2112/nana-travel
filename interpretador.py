@@ -1,6 +1,6 @@
-import time
 import os
 import json
+import time
 from datetime import date
 
 import requests
@@ -14,8 +14,8 @@ MODELO = "openai/gpt-oss-20b"
 ENDERECO = "https://api.groq.com/openai/v1/chat/completions"
 
 CAMPOS = ["origem", "destino", "inicio_ida", "fim_ida",
-          "inicio_volta", "fim_volta", "orcamento", "max_escalas"]
-CAMPOS_OPCIONAIS = ["dias_min", "dias_max"]
+          "inicio_volta", "fim_volta", "max_escalas"]
+CAMPOS_OPCIONAIS = ["orcamento", "dias_min", "dias_max"]
 
 
 def montar_instrucoes(hoje):
@@ -64,6 +64,7 @@ def chamar_llm(instrucoes, pedido):
 
     raise RuntimeError("Limite de uso da API atingido 3 vezes seguidas. Tente de novo em alguns minutos.")
 
+
 def limpar_json(texto):
     texto = texto.strip()
     texto = texto.removeprefix("```json").removeprefix("```")
@@ -80,6 +81,12 @@ def converter_inteiro(valor):
     if valor is None:
         return None
     return int(valor)
+
+
+def converter_decimal(valor):
+    if valor is None:
+        return None
+    return float(valor)
 
 
 def campos_faltando(criterios):
@@ -118,7 +125,7 @@ def executar_linguagem_natural():
         converter_data(criterios["fim_ida"]),
         converter_data(criterios["inicio_volta"]),
         converter_data(criterios["fim_volta"]),
-        float(criterios["orcamento"]),
+        converter_decimal(criterios.get("orcamento")),
         int(criterios["max_escalas"]),
         converter_inteiro(criterios.get("dias_min")),
         converter_inteiro(criterios.get("dias_max"))

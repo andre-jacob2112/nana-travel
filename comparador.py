@@ -6,8 +6,11 @@ from datetime import datetime
 
 def ler_orcamento():
     while True:
+        texto = input("Qual é o seu orçamento total (ida + volta)? Deixe em branco para não ter limite: ").strip()
+        if texto == "":
+            return None
         try:
-            orcamento = float(input("Qual é o seu orçamento total (ida + volta)? ").replace(",", "."))
+            orcamento = float(texto.replace(",", "."))
             if orcamento <= 0:
                 print("O orçamento deve ser maior que zero")
             else:
@@ -109,7 +112,8 @@ def combinar_ida_volta(idas, voltas, orcamento, dias_min=None, dias_max=None):
             total = ida["Preço"] + volta["Preço"]
             dias = (data_volta - data_ida).days
             duracao_valida = (dias_min is None or dias >= dias_min) and (dias_max is None or dias <= dias_max)
-            if data_volta > data_ida and total <= orcamento and duracao_valida:
+            dentro_do_orcamento = orcamento is None or total <= orcamento
+            if data_volta > data_ida and dentro_do_orcamento and duracao_valida:
                 combinacoes.append({"Ida": ida, "Volta": volta, "Total": total, "Dias": dias})
 
     return combinacoes
@@ -130,12 +134,15 @@ def formatar_trecho(oferta):
 def exibir_combinacoes(combinacoes, limite):
     if combinacoes:
         melhor = combinacoes[0]
-        mais_cara = combinacoes[-1]
-        economia = mais_cara["Total"] - melhor["Total"]
         quantidade = min(limite, len(combinacoes))
 
-        print(f"Combinações encontradas: {len(combinacoes)} (mostrando as {quantidade} mais baratas)")
-        print(f"A melhor opção custa R$ {economia:.2f} a menos que a mais cara encontrada")
+        if len(combinacoes) == 1:
+            print("Combinação encontrada: 1")
+        else:
+            mais_cara = combinacoes[-1]
+            economia = mais_cara["Total"] - melhor["Total"]
+            print(f"Combinações encontradas: {len(combinacoes)} (mostrando as {quantidade} mais baratas)")
+            print(f"A melhor opção custa R$ {economia:.2f} a menos que a mais cara encontrada")
         print()
 
         for numero, combinacao in enumerate(combinacoes[:limite], start=1):

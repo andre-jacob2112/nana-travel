@@ -69,3 +69,13 @@ def test_duracao_entre_6_e_7_dias():
     assert combinacoes[2]["Total"] == 920
     for combinacao in combinacoes:
         assert 6 <= combinacao["Dias"] <= 7
+
+
+def test_sem_orcamento():
+    combinacoes = buscar(PASSAGENS, "São Paulo", "Recife",
+                         date(2026, 12, 1), date(2026, 12, 16),
+                         date(2026, 12, 13), date(2026, 12, 23),
+                         None, 1)
+    assert len(combinacoes) == 11
+    assert combinacoes[0]["Total"] == 700
+    assert combinacoes[-1]["Total"] == 1100
