@@ -6,7 +6,8 @@ from datetime import date
 import requests
 from dotenv import load_dotenv
 
-from comparador import carregar_passagens, buscar, exibir_combinacoes, converter_data
+from comparador import (carregar_passagens, buscar, exibir_combinacoes, converter_data,
+                        listar_cidades, cidades_desconhecidas, avisar_cidade_desconhecida)
 
 load_dotenv()
 CHAVE = os.getenv("GROQ_API_KEY")
@@ -110,6 +111,14 @@ def executar_linguagem_natural():
     print("\nEntendi assim:")
     for campo in CAMPOS + CAMPOS_OPCIONAIS:
         print(f"  {campo}: {criterios.get(campo)}")
+
+    cidades = listar_cidades(passagens)
+    desconhecidas = cidades_desconhecidas(criterios.get("origem"), criterios.get("destino"), cidades)
+    if desconhecidas:
+        for nome in desconhecidas:
+            print()
+            avisar_cidade_desconhecida(nome, cidades)
+        return
 
     faltando = campos_faltando(criterios)
     if faltando:

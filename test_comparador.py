@@ -1,7 +1,9 @@
 from datetime import date
-from comparador import carregar_passagens, buscar, buscar_roteiro, normalizar, converter_data
+from comparador import (carregar_passagens, buscar, buscar_roteiro, normalizar, converter_data,
+                        listar_cidades, encontrar_cidade, sugerir_cidade, cidades_desconhecidas)
 
 PASSAGENS = carregar_passagens("passagens.csv")
+CIDADES = listar_cidades(PASSAGENS)
 
 
 def buscar_dezembro(origem, destino, orcamento, max_escalas):
@@ -111,3 +113,27 @@ def test_roteiro_sem_escalas_e_com_orcamento():
     assert len(roteiros) == 2
     assert roteiros[0]["Total"] == 1150
     assert roteiros[1]["Total"] == 1200
+
+
+def test_encontrar_cidade_sem_acento_maiusculas_e_espacos():
+    assert encontrar_cidade("  SAO PAULO ", CIDADES) == "São Paulo"
+
+
+def test_cidade_com_erro_nao_encontrada():
+    assert encontrar_cidade("Refice", CIDADES) is None
+
+
+def test_sugerir_cidade():
+    assert sugerir_cidade("Refice", CIDADES) == "Recife"
+    assert sugerir_cidade("Salvdor", CIDADES) == "Salvador"
+
+
+def test_sem_sugestao():
+    assert sugerir_cidade("Tóquio", CIDADES) is None
+
+
+def test_cidades_desconhecidas():
+    assert cidades_desconhecidas("São Paulo", "Recife", CIDADES) == []
+    assert cidades_desconhecidas("São Paulo", "Tóquio", CIDADES) == ["Tóquio"]
+    assert cidades_desconhecidas("Refice", "Tóquio", CIDADES) == ["Refice", "Tóquio"]
+    assert cidades_desconhecidas("São Paulo", None, CIDADES) == []

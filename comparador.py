@@ -2,6 +2,7 @@
 
 import unicodedata
 import csv
+import difflib
 from datetime import datetime
 
 
@@ -54,7 +55,7 @@ def normalizar(texto):
     for caractere in decomposto:
         if not unicodedata.combining(caractere):
             resultado += caractere
-    return resultado.lower()
+    return resultado.lower().strip()
 
 
 def carregar_passagens(caminho):
@@ -72,6 +73,57 @@ def carregar_passagens(caminho):
             }
             passagens.append(oferta)
     return passagens
+
+
+def listar_cidades(passagens):
+    cidades = {}
+    for oferta in passagens:
+        cidades[normalizar(oferta["Origem"])] = oferta["Origem"]
+        cidades[normalizar(oferta["Destino"])] = oferta["Destino"]
+    return cidades
+
+
+def encontrar_cidade(nome, cidades):
+    return cidades.get(normalizar(nome))
+
+
+def sugerir_cidade(nome, cidades):
+    parecidas = difflib.get_close_matches(normalizar(nome), list(cidades), n=1, cutoff=0.6)
+    if parecidas:
+        return cidades[parecidas[0]]
+    return None
+
+
+def cidades_desconhecidas(origem, destino, cidades):
+    desconhecidas = []
+    for nome in [origem, destino]:
+        if nome is not None and encontrar_cidade(nome, cidades) is None:
+            desconhecidas.append(nome)
+    return desconhecidas
+
+
+def avisar_cidade_desconhecida(nome, cidades):
+    sugestao = sugerir_cidade(nome, cidades)
+    if sugestao is not None:
+        print(f"Não encontrei a cidade \"{nome}\". Você quis dizer {sugestao}?")
+    else:
+        disponiveis = ", ".join(sorted(cidades.values()))
+        print(f"Não encontrei a cidade \"{nome}\". Cidades disponíveis: {disponiveis}")
+
+
+def ler_cidade(pergunta, cidades):
+    while True:
+        nome = input(pergunta).strip()
+        cidade = encontrar_cidade(nome, cidades)
+        if cidade is not None:
+            return cidade
+        sugestao = sugerir_cidade(nome, cidades)
+        if sugestao is not None:
+            resposta = input(f"Você quis dizer {sugestao}? (s/n) ").strip().lower()
+            if resposta == "s":
+                return sugestao
+        disponiveis = ", ".join(sorted(cidades.values()))
+        print(f"Cidades disponíveis: {disponiveis}")
 
 
 def ler_data(mensagem):
@@ -224,8 +276,9 @@ def exibir_roteiros(roteiros, limite):
 
 
 def executar_ida_e_volta(passagens):
-    origem = input("Origem: ").strip()
-    destino = input("Destino: ").strip()
+    cidades = listar_cidades(passagens)
+    origem = ler_cidade("Origem: ", cidades)
+    destino = ler_cidade("Destino: ", cidades)
     inicio_ida, fim_ida = ler_periodo("Ida")
     inicio_volta, fim_volta = ler_periodo("Volta")
     orcamento = ler_orcamento()
@@ -236,12 +289,13 @@ def executar_ida_e_volta(passagens):
 
 
 def executar_varios_trechos(passagens):
+    cidades = listar_cidades(passagens)
     quantidade = ler_quantidade_trechos()
     trechos = []
     for numero in range(1, quantidade + 1):
         print(f"\nTrecho {numero}")
-        origem = input("Origem: ").strip()
-        destino = input("Destino: ").strip()
+        origem = ler_cidade("Origem: ", cidades)
+        destino = ler_cidade("Destino: ", cidades)
         inicio, fim = ler_periodo(f"Trecho {numero}")
         trechos.append({"origem": origem, "destino": destino, "inicio": inicio, "fim": fim})
 
