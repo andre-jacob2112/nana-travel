@@ -73,9 +73,51 @@ def limpar_json(texto):
     return texto.strip()
 
 
+def proximo_ano(data):
+    try:
+        return data.replace(year=data.year + 1)
+    except ValueError:
+        # 29/02 sem ano bissexto seguinte
+        return data.replace(year=data.year + 1, day=28)
+
+
+def ajustar_periodo(inicio, fim, hoje):
+    if inicio is None and fim is None:
+        return None, None
+
+    if inicio is None or fim is None:
+        texto = inicio if inicio is not None else fim
+        data = converter_data(texto)
+        if data < hoje:
+            texto = proximo_ano(data).strftime("%d/%m/%Y")
+        if inicio is not None:
+            return texto, None
+        return None, texto
+
+    data_inicio = converter_data(inicio)
+    data_fim = converter_data(fim)
+    if data_fim < hoje:
+        return (proximo_ano(data_inicio).strftime("%d/%m/%Y"),
+                proximo_ano(data_fim).strftime("%d/%m/%Y"))
+    if data_inicio < hoje:
+        return hoje.strftime("%d/%m/%Y"), fim
+    return inicio, fim
+
+
+def ajustar_datas(criterios, hoje):
+    for inicio, fim in (("inicio_ida", "fim_ida"), ("inicio_volta", "fim_volta")):
+        try:
+            criterios[inicio], criterios[fim] = ajustar_periodo(
+                criterios.get(inicio), criterios.get(fim), hoje)
+        except (ValueError, TypeError):
+            pass  # data malformada fica como veio; a validação depois acusa
+
+
 def interpretar_pedido(pedido, hoje):
     texto = chamar_llm(montar_instrucoes(hoje), pedido)
-    return json.loads(limpar_json(texto))
+    criterios = json.loads(limpar_json(texto))
+    ajustar_datas(criterios, hoje)
+    return criterios
 
 
 def converter_inteiro(valor):
