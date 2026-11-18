@@ -1,6 +1,7 @@
 from datetime import date
 from comparador import (carregar_passagens, buscar, buscar_roteiro, normalizar, converter_data,
-                        listar_cidades, encontrar_cidade, sugerir_cidade, cidades_desconhecidas)
+                        listar_cidades, encontrar_cidade, sugerir_cidade, cidades_desconhecidas,
+                        validar_tipo_viagem, mensagem_cidade_desconhecida)
 
 PASSAGENS = carregar_passagens("passagens.csv")
 CIDADES = listar_cidades(PASSAGENS)
@@ -137,3 +138,20 @@ def test_cidades_desconhecidas():
     assert cidades_desconhecidas("São Paulo", "Tóquio", CIDADES) == ["Tóquio"]
     assert cidades_desconhecidas("Refice", "Tóquio", CIDADES) == ["Refice", "Tóquio"]
     assert cidades_desconhecidas("São Paulo", None, CIDADES) == []
+
+
+def test_validar_tipo_viagem_aceita_1_e_2():
+    assert validar_tipo_viagem("1") == "1"
+    assert validar_tipo_viagem(" 2 ") == "2"
+
+
+def test_validar_tipo_viagem_rejeita_outras_entradas():
+    assert validar_tipo_viagem("refice") is None
+    assert validar_tipo_viagem("3") is None
+    assert validar_tipo_viagem("") is None
+
+
+def test_mensagem_cidade_desconhecida():
+    mensagem = mensagem_cidade_desconhecida("Tóquio", CIDADES)
+    disponiveis = ", ".join(sorted(CIDADES.values()))
+    assert mensagem == f"Não encontrei a cidade \"Tóquio\". Cidades disponíveis: {disponiveis}"

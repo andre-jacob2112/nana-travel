@@ -102,13 +102,17 @@ def cidades_desconhecidas(origem, destino, cidades):
     return desconhecidas
 
 
+def mensagem_cidade_desconhecida(nome, cidades):
+    disponiveis = ", ".join(sorted(cidades.values()))
+    return f"Não encontrei a cidade \"{nome}\". Cidades disponíveis: {disponiveis}"
+
+
 def avisar_cidade_desconhecida(nome, cidades):
     sugestao = sugerir_cidade(nome, cidades)
     if sugestao is not None:
         print(f"Não encontrei a cidade \"{nome}\". Você quis dizer {sugestao}?")
     else:
-        disponiveis = ", ".join(sorted(cidades.values()))
-        print(f"Não encontrei a cidade \"{nome}\". Cidades disponíveis: {disponiveis}")
+        print(mensagem_cidade_desconhecida(nome, cidades))
 
 
 def ler_cidade(pergunta, cidades):
@@ -122,8 +126,7 @@ def ler_cidade(pergunta, cidades):
             resposta = input(f"Você quis dizer {sugestao}? (s/n) ").strip().lower()
             if resposta == "s":
                 return sugestao
-        disponiveis = ", ".join(sorted(cidades.values()))
-        print(f"Cidades disponíveis: {disponiveis}")
+        print(mensagem_cidade_desconhecida(nome, cidades))
 
 
 def ler_data(mensagem):
@@ -307,9 +310,24 @@ def executar_varios_trechos(passagens):
     exibir_roteiros(roteiros, 5)
 
 
+def validar_tipo_viagem(texto):
+    tipo = texto.strip()
+    if tipo in ("1", "2"):
+        return tipo
+    return None
+
+
+def ler_tipo_viagem():
+    while True:
+        tipo = validar_tipo_viagem(input("Tipo de viagem (1 = ida e volta, 2 = vários trechos): "))
+        if tipo is not None:
+            return tipo
+        print("Digite 1 ou 2")
+
+
 def executar_terminal():
     passagens = carregar_passagens("passagens.csv")
-    tipo = input("Tipo de viagem (1 = ida e volta, 2 = vários trechos): ").strip()
+    tipo = ler_tipo_viagem()
     if tipo == "2":
         executar_varios_trechos(passagens)
     else:
