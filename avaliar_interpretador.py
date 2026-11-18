@@ -1,3 +1,4 @@
+import sys
 import time
 from datetime import date
 
@@ -80,6 +81,53 @@ CASOS_VALIDACAO = [
 ]
 
 
+# Conjunto de VALIDAÇÃO 2: criado ANTES de mudar o prompt, para medir a mudança sem viés.
+CASOS_VALIDACAO_2 = [
+    # Escritos por André
+    {"pedido": "Quero ir no comecinho de Fevereiro para Recife a partir de Salvador, tenho uns 900 conto",
+     "esperado": {"origem": "Salvador", "destino": "Recife", "inicio_ida": "01/02/2027", "fim_ida": "15/02/2027", "inicio_volta": None, "fim_volta": None, "orcamento": 900, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    {"pedido": "Quero ir no Final de Março para salvador partindo de Refice, orçamento de 1500 reais",
+     "esperado": {"origem": "Recife", "destino": "Salvador", "inicio_ida": "16/03/2027", "fim_ida": "31/03/2027", "inicio_volta": None, "fim_volta": None, "orcamento": 1500, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    {"pedido": "Quero ir no dia 13 e voltar no dia 16 de setembro, de sa paulo pra refic, mas acima de 780 fica impossivel pra mim",
+     "esperado": {"origem": "São Paulo", "destino": "Recife", "inicio_ida": "13/09/2027", "fim_ida": "13/09/2027", "inicio_volta": "16/09/2027", "fim_volta": "16/09/2027", "orcamento": 780, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    {"pedido": "Quero ir pra São Paulo com 500 reais em julho",
+     "esperado": {"origem": None, "destino": "São Paulo", "inicio_ida": "01/07/2027", "fim_ida": "31/07/2027", "inicio_volta": None, "fim_volta": None, "orcamento": 500, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    {"pedido": "to afim de viajar pelo nordeste mas nem sei pra onde, tenho só 1000 reais",
+     "esperado": {"origem": None, "destino": None, "inicio_ida": None, "fim_ida": None, "inicio_volta": None, "fim_volta": None, "orcamento": 1000, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    # Fim/final do mês
+    {"pedido": "Saindo de Porto Alegre, quero chegar em Natal no final de abril e retornar no fim de maio, gasto até 2.300 reais, aceito 2 conexões",
+     "esperado": {"origem": "Porto Alegre", "destino": "Natal", "inicio_ida": "16/04/2027", "fim_ida": "30/04/2027", "inicio_volta": "16/05/2027", "fim_volta": "31/05/2027", "orcamento": 2300, "max_escalas": 2, "dias_min": None, "dias_max": None}},
+    {"pedido": "Fim de novembro, de Brasília pra Salvador, só ida, até 650",
+     "esperado": {"origem": "Brasília", "destino": "Salvador", "inicio_ida": "16/11/2026", "fim_ida": "30/11/2026", "inicio_volta": None, "fim_volta": None, "orcamento": 650, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    {"pedido": "Vou visitar minha mãe em Fortaleza no final de junho, saindo do Rio, e volto no final de julho; sem escala e no máximo 1.700",
+     "esperado": {"origem": "Rio de Janeiro", "destino": "Fortaleza", "inicio_ida": "16/06/2027", "fim_ida": "30/06/2027", "inicio_volta": "16/07/2027", "fim_volta": "31/07/2027", "orcamento": 1700, "max_escalas": 0, "dias_min": None, "dias_max": None}},
+    # Datas fixas de ida e volta
+    {"pedido": "Embarco em Manaus no dia 22 de janeiro com destino a Belo Horizonte e retorno no dia 2 de fevereiro, limite de 1.900 reais, uma escala está ok",
+     "esperado": {"origem": "Manaus", "destino": "Belo Horizonte", "inicio_ida": "22/01/2027", "fim_ida": "22/01/2027", "inicio_volta": "02/02/2027", "fim_volta": "02/02/2027", "orcamento": 1900, "max_escalas": 1, "dias_min": None, "dias_max": None}},
+    {"pedido": "Curitiba–Recife: ida 7/3, volta 14/3, voo direto, orçamento livre",
+     "esperado": {"origem": "Curitiba", "destino": "Recife", "inicio_ida": "07/03/2027", "fim_ida": "07/03/2027", "inicio_volta": "14/03/2027", "fim_volta": "14/03/2027", "orcamento": None, "max_escalas": 0, "dias_min": None, "dias_max": None}},
+    # Começo/meio do mês
+    {"pedido": "Quero ir de Belém a Goiânia no meio de abril e voltar no começo de maio, R$ 1.250 no máximo",
+     "esperado": {"origem": "Belém", "destino": "Goiânia", "inicio_ida": "11/04/2027", "fim_ida": "20/04/2027", "inicio_volta": "01/05/2027", "fim_volta": "15/05/2027", "orcamento": 1250, "max_escalas": None, "dias_min": None, "dias_max": None}},
+    {"pedido": "Florianópolis pra Brasília logo no início de março, volta em meados de março, até 980, até duas paradas",
+     "esperado": {"origem": "Florianópolis", "destino": "Brasília", "inicio_ida": "01/03/2027", "fim_ida": "15/03/2027", "inicio_volta": "11/03/2027", "fim_volta": "20/03/2027", "orcamento": 980, "max_escalas": 2, "dias_min": None, "dias_max": None}},
+    # Duração
+    {"pedido": "Quero ficar uma semana em Maceió, saindo de São Paulo entre 8 e 12 de janeiro, até 1.600 reais, sem escalas",
+     "esperado": {"origem": "São Paulo", "destino": "Maceió", "inicio_ida": "08/01/2027", "fim_ida": "12/01/2027", "inicio_volta": "15/01/2027", "fim_volta": "19/01/2027", "orcamento": 1600, "max_escalas": 0, "dias_min": 7, "dias_max": 7}},
+    # Incompletos
+    {"pedido": "Preciso estar em Campo Grande no começo de dezembro, sem escalas",
+     "esperado": {"origem": None, "destino": "Campo Grande", "inicio_ida": "01/12/2026", "fim_ida": "15/12/2026", "inicio_volta": None, "fim_volta": None, "orcamento": None, "max_escalas": 0, "dias_min": None, "dias_max": None}},
+    {"pedido": "Tenho 800 reais e quero sair de Vitória, qualquer destino serve",
+     "esperado": {"origem": "Vitória", "destino": None, "inicio_ida": None, "fim_ida": None, "inicio_volta": None, "fim_volta": None, "orcamento": 800, "max_escalas": None, "dias_min": None, "dias_max": None}},
+]
+
+CONJUNTOS = {
+    "teste": CASOS,
+    "validacao": CASOS_VALIDACAO,
+    "validacao2": CASOS_VALIDACAO_2,
+}
+
+
 def campo_correto(campo, esperado, obtido):
     if esperado is None:
         return obtido is None
@@ -144,8 +192,15 @@ def avaliar(casos):
 
 
 if __name__ == "__main__":
-    escolha = input("Qual conjunto? (1 = teste, 2 = validação): ").strip()
-    if escolha == "2":
-        avaliar(CASOS_VALIDACAO)
+    if len(sys.argv) > 1:
+        nome = sys.argv[1]
+        if nome not in CONJUNTOS:
+            print(f"Conjunto desconhecido: {nome}. Opções: {', '.join(CONJUNTOS)}")
+            sys.exit(1)
+        avaliar(CONJUNTOS[nome])
     else:
-        avaliar(CASOS)
+        escolha = input("Qual conjunto? (1 = teste, 2 = validação): ").strip()
+        if escolha == "2":
+            avaliar(CASOS_VALIDACAO)
+        else:
+            avaliar(CASOS)
