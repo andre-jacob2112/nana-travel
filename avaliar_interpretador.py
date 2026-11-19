@@ -121,6 +121,107 @@ CASOS_VALIDACAO_2 = [
      "esperado": {"origem": "Vitória", "destino": None, "inicio_ida": None, "fim_ida": None, "inicio_volta": None, "fim_volta": None, "orcamento": 800, "max_escalas": None, "dias_min": None, "dias_max": None}},
 ]
 
+
+# Conjunto de ROTEIROS: criado ANTES do prompt de roteiros, para medi-lo sem viés.
+# Cada caso tem duas mensagens: m1 (pedido inicial) e m2 (resposta a
+# "Gostaria de explorar as possibilidades integrando mais trechos? (s/n)").
+# Regras dos valores esperados:
+# - a data de ida fica no trecho que chega ao destino original;
+# - a data de volta fica no trecho que retorna à origem;
+# - o trecho novo fica com a data da m2 ou None;
+# - parada sem data ou "data de melhor preço": inicio e fim None;
+# - "a partir de <mês>": inicio no dia 1 e fim None;
+# - região ou destino não informado: None; sem volta mencionada: sem trecho de volta.
+CASOS_ROTEIRO = [
+    # Escritos por André
+    {"m1": "To afim de ir pra Tóquio em dezembro com orçamento de 1000 saindo de São Paulo e parando em Lisboa no meio",
+     "m2": "esse roteiro mesmo",
+     "esperado": {"trechos": [
+         {"origem": "São Paulo", "destino": "Lisboa", "inicio": None, "fim": None},
+         {"origem": "Lisboa", "destino": "Tóquio", "inicio": "01/12/2026", "fim": "31/12/2026"},
+     ], "orcamento": 1000, "max_escalas": None}},
+    {"m1": "Eu quero uma ida e volta de Fortaleza em janeiro partindo do Rio de Janeiro",
+     "m2": "verdade, quero parar em goiania antes, pode ser na data de melhor preço",
+     "esperado": {"trechos": [
+         {"origem": "Rio de Janeiro", "destino": "Goiânia", "inicio": None, "fim": None},
+         {"origem": "Goiânia", "destino": "Fortaleza", "inicio": "01/01/2027", "fim": "31/01/2027"},
+         {"origem": "Fortaleza", "destino": "Rio de Janeiro", "inicio": "01/01/2027", "fim": "31/01/2027"},
+     ], "orcamento": None, "max_escalas": None}},
+    {"m1": "Eu quero ir e voltar de recife partindo de são paulo dia 12/12 e voltando 24/01",
+     "m2": "quero parar em goiania dia 13/01 necessariamente",
+     "esperado": {"trechos": [
+         {"origem": "São Paulo", "destino": "Recife", "inicio": "12/12/2026", "fim": "12/12/2026"},
+         {"origem": "Recife", "destino": "Goiânia", "inicio": "13/01/2027", "fim": "13/01/2027"},
+         {"origem": "Goiânia", "destino": "São Paulo", "inicio": "24/01/2027", "fim": "24/01/2027"},
+     ], "orcamento": None, "max_escalas": None}},
+    {"m1": "Acho que to afim de viajar pro nordeste, ve as passagens ai pra mim",
+     "m2": "ai, seria legal passar pelo rio tb, já que eu to em sp. Vê com o rio no meio em qualquer data. A viagem toda pode ser a partir de julho msm",
+     "esperado": {"trechos": [
+         {"origem": "São Paulo", "destino": "Rio de Janeiro", "inicio": "01/07/2027", "fim": None},
+         {"origem": "Rio de Janeiro", "destino": None, "inicio": "01/07/2027", "fim": None},
+     ], "orcamento": None, "max_escalas": None}},
+    # Todas as cidades já na m1
+    {"m1": "Saio de BH dia 5 de março pra Salvador, dia 12 sigo pra Recife e dia 20 volto pra BH, até 2500 reais, no máximo 1 escala",
+     "m2": "isso, pode buscar",
+     "esperado": {"trechos": [
+         {"origem": "Belo Horizonte", "destino": "Salvador", "inicio": "05/03/2027", "fim": "05/03/2027"},
+         {"origem": "Salvador", "destino": "Recife", "inicio": "12/03/2027", "fim": "12/03/2027"},
+         {"origem": "Recife", "destino": "Belo Horizonte", "inicio": "20/03/2027", "fim": "20/03/2027"},
+     ], "orcamento": 2500, "max_escalas": 1}},
+    {"m1": "curitba pra floripa no começo de janeiro, depois porto alegre no fim de janeiro, e de lá volto pra curitiba em fevereiro, só voo direto",
+     "m2": "sim, é isso, e no máximo 900 reais",
+     "esperado": {"trechos": [
+         {"origem": "Curitiba", "destino": "Florianópolis", "inicio": "01/01/2027", "fim": "15/01/2027"},
+         {"origem": "Florianópolis", "destino": "Porto Alegre", "inicio": "16/01/2027", "fim": "31/01/2027"},
+         {"origem": "Porto Alegre", "destino": "Curitiba", "inicio": "01/02/2027", "fim": "28/02/2027"},
+     ], "orcamento": 900, "max_escalas": 0}},
+    # Parada nova com data na m2
+    {"m1": "Quero ir de Porto Alegre para Natal, ida entre 3 e 7 de fevereiro, volta entre 20 e 24 de fevereiro, até 2200, até 1 escala",
+     "m2": "quero parar em Salvador antes, saindo daqui dia 1º de fevereiro",
+     "esperado": {"trechos": [
+         {"origem": "Porto Alegre", "destino": "Salvador", "inicio": "01/02/2027", "fim": "01/02/2027"},
+         {"origem": "Salvador", "destino": "Natal", "inicio": "03/02/2027", "fim": "07/02/2027"},
+         {"origem": "Natal", "destino": "Porto Alegre", "inicio": "20/02/2027", "fim": "24/02/2027"},
+     ], "orcamento": 2200, "max_escalas": 1}},
+    {"m1": "SP pra Fortaleza dia 8 de janeiro, volto no meio de fevereiro, até 1800",
+     "m2": "na volta quero ficar uns dias em brasilia, indo pra lá no fim de janeiro",
+     "esperado": {"trechos": [
+         {"origem": "São Paulo", "destino": "Fortaleza", "inicio": "08/01/2027", "fim": "08/01/2027"},
+         {"origem": "Fortaleza", "destino": "Brasília", "inicio": "16/01/2027", "fim": "31/01/2027"},
+         {"origem": "Brasília", "destino": "São Paulo", "inicio": "11/02/2027", "fim": "20/02/2027"},
+     ], "orcamento": 1800, "max_escalas": None}},
+    # Parada nova sem data na m2
+    {"m1": "Manaus para São Paulo entre 10 e 15 de abril, só ida, até 1500",
+     "m2": "quero passar por Belém antes, qualquer dia",
+     "esperado": {"trechos": [
+         {"origem": "Manaus", "destino": "Belém", "inicio": None, "fim": None},
+         {"origem": "Belém", "destino": "São Paulo", "inicio": "10/04/2027", "fim": "15/04/2027"},
+     ], "orcamento": 1500, "max_escalas": None}},
+    {"m1": "Ida e volta Recife–Lisboa, ida em março, volta em abril, até 6000, até 1 escala",
+     "m2": "dá pra incluir Madri na volta? a data tanto faz",
+     "esperado": {"trechos": [
+         {"origem": "Recife", "destino": "Lisboa", "inicio": "01/03/2027", "fim": "31/03/2027"},
+         {"origem": "Lisboa", "destino": "Madri", "inicio": None, "fim": None},
+         {"origem": "Madri", "destino": "Recife", "inicio": "01/04/2027", "fim": "30/04/2027"},
+     ], "orcamento": 6000, "max_escalas": 1}},
+    # Quatro trechos
+    {"m1": "Goiânia pro Rio dia 2/12, depois salvdor dia 6, e volto pra Goiânia dia 15/12, até 3000 no total, sem escala",
+     "m2": "quero incluir Recife entre Salvador e a volta, dia 10/12",
+     "esperado": {"trechos": [
+         {"origem": "Goiânia", "destino": "Rio de Janeiro", "inicio": "02/12/2026", "fim": "02/12/2026"},
+         {"origem": "Rio de Janeiro", "destino": "Salvador", "inicio": "06/12/2026", "fim": "06/12/2026"},
+         {"origem": "Salvador", "destino": "Recife", "inicio": "10/12/2026", "fim": "10/12/2026"},
+         {"origem": "Recife", "destino": "Goiânia", "inicio": "15/12/2026", "fim": "15/12/2026"},
+     ], "orcamento": 3000, "max_escalas": 0}},
+    # m2 diz "sim" sem acrescentar cidade
+    {"m1": "Quero ir de Belo Horizonte para Porto Alegre no fim de maio e voltar no meio de junho, até 1300",
+     "m2": "sim, quero!",
+     "esperado": {"trechos": [
+         {"origem": "Belo Horizonte", "destino": "Porto Alegre", "inicio": "16/05/2027", "fim": "31/05/2027"},
+         {"origem": "Porto Alegre", "destino": "Belo Horizonte", "inicio": "11/06/2027", "fim": "20/06/2027"},
+     ], "orcamento": 1300, "max_escalas": None}},
+]
+
 CONJUNTOS = {
     "teste": CASOS,
     "validacao": CASOS_VALIDACAO,
