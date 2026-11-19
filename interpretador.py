@@ -33,9 +33,10 @@ Responda APENAS com um objeto JSON, sem nenhum texto antes ou depois, com estas 
 
 Regras:
 - Cada período (ida e volta) tem SEMPRE uma data de início e uma data de fim. Mesmo que o pedido descreva o período de forma vaga, preencha as duas.
-- "começo do mês" = dias 1 a 15; "meio do mês" = dias 11 a 20; "fim do mês" ou "final do mês" = dia 16 até o último dia do mês.
+- Períodos do mês: "começo", "início", "comecinho" ou "primeira quinzena" = dias 1 a 15; "meio" ou "meados" = dias 11 a 20; "fim", "final", "finalzinho" ou "segunda quinzena" = dia 16 até o último dia do mês. Um período do mês é sempre um intervalo de datas, nunca um dia único.
+- Mês sem qualificação (ex.: "em julho") = do dia 1 ao último dia do mês.
 - Volta relativa (ex.: "voltar 3 dias depois", "ficar uma semana"): some a duração às DUAS datas da ida. inicio_volta = inicio_ida + duração; fim_volta = fim_ida + duração.
-- Duração da viagem: se o pedido indicar quanto tempo a pessoa quer ficar, preencha "dias_min" e "dias_max". Duração exata (ex.: "uma semana", "3 dias depois") = os dois iguais. Faixa (ex.: "entre 5 e 7 dias") = 5 e 7. Sem duração no pedido = null nos dois.
+- Duração da viagem: preencha "dias_min" e "dias_max" SOMENTE quando o pedido falar explicitamente em duração (ex.: "ficar uma semana", "uns 10 dias", "voltar 3 dias depois"). Duração exata = os dois iguais. Faixa (ex.: "entre 5 e 7 dias") = 5 e 7. Com datas exatas de ida e de volta, "dias_min" e "dias_max" = null. Sem duração no pedido = null nos dois.
 - Escreva as cidades sempre pelo nome completo, nunca abreviado (ex.: "SP" → "São Paulo", "BH" → "Belo Horizonte").
 - "voo direto" ou "sem escalas" = 0.
 - Se uma informação não aparecer no pedido, use null."""
