@@ -3,7 +3,7 @@ import time
 from datetime import date
 
 from comparador import normalizar, converter_data
-from interpretador import interpretar_pedido
+from interpretador import interpretar_pedido, interpretar_roteiro
 
 HOJE = date(2026, 11, 10)
 META_PERCENTUAL = 0.9
@@ -237,7 +237,7 @@ def campo_correto(campo, esperado, obtido):
     try:
         if campo in ("origem", "destino"):
             return normalizar(str(obtido)) == normalizar(esperado)
-        if campo in ("inicio_ida", "fim_ida", "inicio_volta", "fim_volta"):
+        if campo in ("inicio_ida", "fim_ida", "inicio_volta", "fim_volta", "inicio", "fim"):
             return converter_data(str(obtido)) == converter_data(esperado)
         return float(obtido) == float(esperado)
     except ValueError:
@@ -279,7 +279,77 @@ def avaliar(casos):
 
         time.sleep(PAUSA)
 
-    total = len(casos)
+    imprimir_resumo(pedidos_corretos, len(casos), campos_corretos, total_campos, falhas_de_api)
+
+
+def comparar_roteiro(esperado, obtido):
+    diferencas = []
+    trechos_esperados = esperado["trechos"]
+    trechos_obtidos = obtido.get("trechos") or []
+
+    if len(trechos_obtidos) != len(trechos_esperados):
+        diferencas.append(f"número de trechos: esperado {len(trechos_esperados)}, veio {len(trechos_obtidos)}")
+    else:
+        for numero, (trecho_esperado, trecho_obtido) in enumerate(
+                zip(trechos_esperados, trechos_obtidos), start=1):
+            for campo in ("origem", "destino", "inicio", "fim"):
+                valor_esperado = trecho_esperado[campo]
+                valor = trecho_obtido.get(campo)
+                if not campo_correto(campo, valor_esperado, valor):
+                    diferencas.append(f"trecho {numero} {campo}: esperado {valor_esperado}, veio {valor}")
+
+    for campo in ("orcamento", "max_escalas"):
+        valor_esperado = esperado[campo]
+        valor = obtido.get(campo)
+        if not campo_correto(campo, valor_esperado, valor):
+            diferencas.append(f"{campo}: esperado {valor_esperado}, veio {valor}")
+
+    return diferencas
+
+
+def avaliar_roteiros(casos):
+    pedidos_corretos = 0
+    campos_corretos = 0
+    total_campos = 0
+    falhas_de_api = 0
+
+    for numero, caso in enumerate(casos, start=1):
+        try:
+            obtido = interpretar_roteiro(caso["m1"], caso["m2"], HOJE)
+        except (RuntimeError, ValueError) as erro:
+            print(f"{numero:2}. ⚠️  ERRO: {erro}")
+            falhas_de_api += 1
+            time.sleep(PAUSA)
+            continue
+
+        esperado = caso["esperado"]
+        diferencas = comparar_roteiro(esperado, obtido)
+
+        # Campos do caso: 4 por trecho esperado (origem, destino, inicio, fim) + orcamento e max_escalas.
+        campos_do_caso = 4 * len(esperado["trechos"]) + 2
+        total_campos += campos_do_caso
+        if len(obtido.get("trechos") or []) == len(esperado["trechos"]):
+            campos_corretos += campos_do_caso - len(diferencas)
+        else:
+            # Número de trechos errado: todos os campos de trecho contam como errados;
+            # só orcamento e max_escalas podem estar certos.
+            erros_fora_dos_trechos = len(diferencas) - 1
+            campos_corretos += 2 - erros_fora_dos_trechos
+
+        if diferencas:
+            print(f"{numero:2}. ❌ {caso['m1']} | {caso['m2']}")
+            for diferenca in diferencas:
+                print(f"      {diferenca}")
+        else:
+            pedidos_corretos += 1
+            print(f"{numero:2}. ✅ {caso['m1']} | {caso['m2']}")
+
+        time.sleep(PAUSA)
+
+    imprimir_resumo(pedidos_corretos, len(casos), campos_corretos, total_campos, falhas_de_api)
+
+
+def imprimir_resumo(pedidos_corretos, total, campos_corretos, total_campos, falhas_de_api):
     print()
     print(f"Pedidos 100% corretos: {pedidos_corretos}/{total}")
     print(f"Campos corretos: {campos_corretos}/{total_campos}")
@@ -295,10 +365,13 @@ def avaliar(casos):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         nome = sys.argv[1]
-        if nome not in CONJUNTOS:
-            print(f"Conjunto desconhecido: {nome}. Opções: {', '.join(CONJUNTOS)}")
+        if nome == "roteiro":
+            avaliar_roteiros(CASOS_ROTEIRO)
+        elif nome in CONJUNTOS:
+            avaliar(CONJUNTOS[nome])
+        else:
+            print(f"Conjunto desconhecido: {nome}. Opções: {', '.join(CONJUNTOS)}, roteiro")
             sys.exit(1)
-        avaliar(CONJUNTOS[nome])
     else:
         escolha = input("Qual conjunto? (1 = teste, 2 = validação): ").strip()
         if escolha == "2":

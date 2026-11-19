@@ -42,6 +42,41 @@ Regras:
 - Se uma informação não aparecer no pedido, use null."""
 
 
+def montar_instrucoes_roteiro(hoje):
+    hoje_texto = hoje.strftime("%d/%m/%Y")
+    return f"""Você monta roteiros de passagens aéreas com vários trechos a partir de duas mensagens em português.
+Hoje é {hoje_texto}. Datas sem ano referem-se à próxima ocorrência a partir de hoje.
+
+A 1ª mensagem é o pedido inicial de viagem. A 2ª mensagem é a resposta do usuário à pergunta "Gostaria de explorar as possibilidades integrando mais trechos? (s/n)". Ela pode acrescentar uma parada nova, apenas confirmar o roteiro da 1ª mensagem ou trazer informações que faltavam (como orçamento, escalas ou a cidade de onde o usuário sai).
+
+Responda APENAS com um objeto JSON, sem nenhum texto antes ou depois, com estas chaves:
+- "trechos": lista de trechos, na ordem da viagem. Cada trecho é um objeto com:
+  - "origem" e "destino": nomes das cidades
+  - "inicio" e "fim": o período em que o voo desse trecho pode sair, datas no formato dd/mm/aaaa ou null
+- "orcamento": número, o valor total da viagem em reais
+- "max_escalas": número inteiro, o máximo de escalas por trecho
+
+Regras dos trechos:
+- O destino de cada trecho é a origem do trecho seguinte.
+- Junte as duas mensagens: as cidades e datas da 1ª mensagem mais a parada nova da 2ª, encaixada no ponto da viagem que o usuário indicar.
+- A data de ida da 1ª mensagem fica no trecho que chega ao destino original. A data de volta fica no trecho que retorna à cidade de origem. O trecho novo fica com a data informada na 2ª mensagem ou com null.
+- Exemplo com cidades genéricas: 1ª mensagem "ida de A para B em março, volta em abril"; 2ª mensagem "quero parar em C antes". Trechos: A→C (inicio null, fim null), C→B (março), B→A (abril).
+- Parada sem data, "qualquer dia", "a data tanto faz" ou "na data de melhor preço" = "inicio" e "fim" null.
+- "a partir de <mês>" = "inicio" no dia 1 desse mês e "fim" null, em todos os trechos a que a expressão se refere.
+- Se nenhuma das mensagens mencionar volta, não crie trecho de volta.
+- Região (ex.: "a Europa", "o sul") ou destino não informado = null na cidade. Não invente cidades.
+
+Regras das datas:
+- Períodos do mês: "começo", "início", "comecinho" ou "primeira quinzena" = dias 1 a 15; "meio" ou "meados" = dias 11 a 20; "fim", "final", "finalzinho" ou "segunda quinzena" = dia 16 até o último dia do mês. Um período do mês é sempre um intervalo de datas, nunca um dia único.
+- Mês sem qualificação (ex.: "em julho") = do dia 1 ao último dia do mês.
+- Um dia específico (ex.: "dia 12") = "inicio" e "fim" iguais.
+
+Regras gerais:
+- Escreva as cidades sempre pelo nome completo, nunca abreviado, e corrija erros de digitação (ex.: "SP" → "São Paulo", "BH" → "Belo Horizonte", "Fortalesa" → "Fortaleza").
+- "voo direto" ou "sem escalas" = 0.
+- Se uma informação não aparecer em nenhuma das mensagens, use null."""
+
+
 def chamar_llm(instrucoes, pedido):
     for tentativa in range(3):
         resposta = requests.post(
@@ -119,6 +154,19 @@ def interpretar_pedido(pedido, hoje):
     criterios = json.loads(limpar_json(texto))
     ajustar_datas(criterios, hoje)
     return criterios
+
+
+def interpretar_roteiro(m1, m2, hoje):
+    pedido = f"1ª mensagem: {m1}\n2ª mensagem: {m2}"
+    texto = chamar_llm(montar_instrucoes_roteiro(hoje), pedido)
+    roteiro = json.loads(limpar_json(texto))
+    for trecho in roteiro.get("trechos") or []:
+        try:
+            trecho["inicio"], trecho["fim"] = ajustar_periodo(
+                trecho.get("inicio"), trecho.get("fim"), hoje)
+        except (ValueError, TypeError):
+            pass  # data malformada fica como veio; a avaliação acusa
+    return roteiro
 
 
 def converter_inteiro(valor):
